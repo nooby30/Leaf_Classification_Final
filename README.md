@@ -162,10 +162,3 @@ These files are generated when the relevant notebook cells run successfully; the
 - Improve unknown-class detection using dedicated unknown examples and calibrated thresholds.
 - Build a simple interface for uploading a leaf image and viewing predictions.
 
-## 👨‍💻 Author
-
-**GitHub:** [nooby30](https://github.com/nooby30)
-
-## 📄 License
-
-A license has not yet been specified. Add an appropriate license before redistributing the project or dataset.
