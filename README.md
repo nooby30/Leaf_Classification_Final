@@ -1,164 +1,663 @@
-# Leaf Classification Using Machine Learning and Deep Learning
+# 🍃 Leaf Classification Using Machine Learning and Deep Learning
 
-## 📌 Project Overview
+### A Comparative Study of Traditional Machine Learning and Deep Learning Approaches for Leaf Image Classification
 
-This project explores automated leaf image classification using two machine learning approaches: a traditional machine learning pipeline based on handcrafted image features and Support Vector Machine (SVM), and a deep learning approach using MobileNetV2 transfer learning.
+---
 
-The objective is to compare the performance of these approaches on a leaf image dataset and explore confidence-based prediction for images that may not belong to the model's known classes.
+## 1. Project Overview
 
-## 🎯 Objectives
+Plant identification through leaf morphology is an important application of computer vision and image processing. Characteristics such as leaf colour, shape, texture, and structural patterns can provide useful information for distinguishing plant categories.
 
-- Classify leaf images using visual features.
-- Implement a traditional machine learning model using HOG features, RGB colour histograms, and SVM.
-- Build a deep learning classifier using MobileNetV2 transfer learning.
-- Compare the models using accuracy, macro-F1 score, macro recall, classification reports, and confusion matrices.
-- Inspect misclassified images and evaluate predictions on new images.
-- Explore confidence-based detection of potentially unknown classes.
-- Save trained models and evaluation outputs for future use.
+This project focuses on developing an automated leaf classification system using two different approaches:
 
-## 🧠 Models Used
+1. **Traditional Machine Learning:** HOG (Histogram of Oriented Gradients), RGB Colour Histograms, and Support Vector Machine (SVM).
+2. **Deep Learning:** MobileNetV2-based Transfer Learning using pretrained ImageNet weights.
 
-### 1. HOG + RGB Colour Histograms + SVM
+The primary objective is to compare both approaches and investigate their effectiveness in classifying leaf images. The project also explores confidence-based prediction to identify uncertain or potentially unfamiliar images.
 
-The traditional machine learning pipeline extracts several features from each image:
+## 2. Project Objectives
 
-- **RGB colour histograms:** Capture the distribution of red, green, and blue pixel intensities.
-- **Histogram of Oriented Gradients (HOG):** Captures local image gradients, edges, and shape-related information.
-- **Grayscale statistics:** Use mean and standard deviation to describe image intensity.
+- Develop an automated system for leaf image classification.
+- Extract meaningful visual features using colour histograms and HOG.
+- Implement a traditional machine learning classifier using SVM.
+- Apply transfer learning using MobileNetV2.
+- Compare the performance of traditional machine learning and deep learning models.
+- Evaluate models using accuracy, precision, recall, and F1-score.
+- Visualise classification performance using confusion matrices.
+- Explore confidence-based prediction for unknown or unfamiliar images.
 
-The extracted features are standardised using `StandardScaler` and classified using an RBF-kernel Support Vector Classifier with probability estimation and balanced class weights.
+## 3. Dataset Description
 
-### 2. MobileNetV2 Transfer Learning
+The dataset consists of **327 RGB leaf images** distributed across six categories, including five known categories and one unknown category.
 
-MobileNetV2 is used as a pretrained convolutional neural network with ImageNet weights.
+### Dataset Distribution
 
-The notebook:
+| Category | Number of Images |
+|---|---:|
+| Mango selected | 62 |
+| Lembu | 60 |
+| Coccinia grandis selected | 54 |
+| Codiaeum variegatum selected | 51 |
+| Herbarium zip | 50 |
+| Unknown | 50 |
+| **Total** | **327** |
 
-- Resizes images to 160 × 160 pixels.
-- Applies MobileNetV2-specific input preprocessing.
-- Freezes the pretrained convolutional base.
-- Adds global average pooling, dropout, and a dense softmax classification layer.
-- Trains the classification head for up to 10 epochs, with early stopping based on validation loss.
+### Dataset Characteristics
 
-This approach uses pretrained visual representations to classify leaf images without training the entire network from scratch.
+| Property | Description |
+|---|---|
+| Total images | 327 |
+| Number of categories | 6 |
+| Known categories | 5 |
+| Unknown category | 1 |
+| Image dimensions | 512 × 512 pixels |
+| Image format | RGB |
 
-## 📂 Dataset and Preprocessing
+All images were checked for readability before model development.
 
-The notebook supports image datasets organised into class-specific folders, with images in formats such as JPG, JPEG, PNG, BMP, and WebP.
+### Dataset Split
 
-The workflow includes:
+Stratified sampling was used to maintain the distribution of categories across the training, validation, and testing sets.
 
-1. Extracting ZIP archives.
-2. Detecting folders containing images.
-3. Inspecting class counts, image dimensions, colour information, and sample images.
-4. Removing unreadable images.
-5. Creating stratified training, validation, and test sets using a fixed random seed.
+| Dataset | Images | Percentage |
+|---|---:|---:|
+| Training | 228 | 69.72% |
+| Validation | 49 | 14.98% |
+| Testing | 50 | 15.30% |
+| **Total** | **327** | **100%** |
 
-The split is approximately:
+A fixed random seed of 42 was used for reproducibility.
 
-- **70% — Training**
-- **15% — Validation**
-- **15% — Testing**
+## 4. Data Preprocessing and Exploration
 
-The notebook selects up to five known classes automatically by folder size unless `KNOWN_CLASSES` is explicitly configured. Other discovered image folders are assigned the `unknown` label. For reproducible experiments, configure `KNOWN_CLASSES` with the exact intended species names.
+The dataset was processed using Python libraries such as Pillow, NumPy, and Pandas.
 
-## 📊 Model Evaluation
+The preprocessing workflow included:
 
-Both models are evaluated on the test set using:
+- Extracting image datasets from ZIP archives.
+- Automatically identifying class folders.
+- Assigning labels to known and unknown categories.
+- Checking image readability.
+- Analysing image dimensions and RGB colour information.
+- Removing unreadable images.
+- Creating stratified training, validation, and testing datasets.
 
-- Accuracy
-- Macro-F1 score
-- Macro recall
-- Classification reports
-- Confusion matrices
+### Important Code: Dataset Preparation
 
-The notebook also compares incorrect predictions and displays example images where the models make mistakes.
+```python
+IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
-Actual evaluation scores should be taken from the outputs generated when the notebook is executed with the intended dataset.
+def direct_images(folder):
+    return [
+        p for p in folder.iterdir()
+        if p.is_file() and p.suffix.lower() in IMAGE_EXTS
+    ]
 
-## 🔎 Unknown-Leaf Prediction
+# Identify folders containing images
+class_dirs = []
 
-The project includes a basic confidence-based prediction mechanism for new images.
+for folder in EXTRACT_DIR.rglob("*"):
+    if folder.is_dir() and direct_images(folder):
+        class_dirs.append(folder)
 
-A prediction is labelled as a low-confidence unknown when its highest class probability falls below a threshold estimated from validation predictions.
+# Select five known categories
+ranked = sorted(
+    normal_dirs,
+    key=lambda p: len(direct_images(p)),
+    reverse=True
+)
 
-**Limitation:** This is a heuristic, not a dedicated unknown-species classifier. A high-confidence prediction can still be wrong, and a low-confidence prediction can belong to a known species. Reliable unknown-class evaluation requires representative unknown leaves and, ideally, other out-of-distribution images that were not used for training.
+known_dirs = ranked[:5]
+```
 
-## 🛠️ Technologies Used
+The notebook automatically selected the five largest non-unknown image folders as known categories. Other folders were mapped to the unknown label.
 
-- Python
-- NumPy
-- Pandas
-- Matplotlib
-- Seaborn
-- Pillow (PIL)
-- scikit-image
-- scikit-learn
-- TensorFlow / Keras
-- Joblib
-- Jupyter Notebook
+### Important Code: Stratified Train-Test Split
 
-## 🚀 How to Run
+```python
+train_df, temp_df = train_test_split(
+    metadata,
+    test_size=0.30,
+    random_state=42,
+    stratify=metadata["label"]
+)
 
-### 1. Clone the repository
+val_df, test_df = train_test_split(
+    temp_df,
+    test_size=0.50,
+    random_state=42,
+    stratify=temp_df["label"]
+)
+
+print("Training:", len(train_df))
+print("Validation:", len(val_df))
+print("Testing:", len(test_df))
+```
+
+This resulted in 228 training images, 49 validation images, and 50 testing images.
+
+## 5. Traditional Machine Learning Approach: HOG + RGB + SVM
+
+The first classification approach uses handcrafted image features to represent the visual characteristics of leaves.
+
+### 5.1 Feature Extraction
+
+Three types of features were extracted from each image:
+
+**RGB Colour Histograms**
+
+- Capture the distribution of red, green, and blue intensities.
+- Use 16 bins for each colour channel.
+- Generate 48 colour features.
+
+**Histogram of Oriented Gradients (HOG)**
+
+- Extracts local gradient and edge information.
+- Captures structural patterns and leaf outlines.
+- Uses 9 orientations, 8 × 8 pixels per cell, and 2 × 2 cells per block.
+
+**Grayscale Statistics**
+
+- Mean grayscale intensity.
+- Standard deviation of grayscale intensity.
+
+The combined feature vector contains **8,150 features per image**.
+
+### Important Code: HOG and RGB Feature Extraction
+
+```python
+IMG_SIZE = (128, 128)
+
+def extract_features(image_path):
+
+    image = Image.open(image_path).convert("RGB")
+    image = image.resize(IMG_SIZE)
+
+    rgb = np.asarray(image, dtype=np.uint8)
+    features = []
+
+    # RGB colour histograms
+    for channel in range(3):
+
+        hist, _ = np.histogram(
+            rgb[:, :, channel],
+            bins=16,
+            range=(0, 256)
+        )
+
+        hist = hist.astype(np.float32)
+        hist = hist / max(hist.sum(), 1)
+
+        features.extend(hist)
+
+    # HOG feature extraction
+    gray = rgb2gray(rgb)
+
+    hog_features = hog(
+        gray,
+        orientations=9,
+        pixels_per_cell=(8, 8),
+        cells_per_block=(2, 2),
+        block_norm="L2-Hys",
+        feature_vector=True
+    )
+
+    features.extend(hog_features)
+
+    # Grayscale statistics
+    features.extend([
+        gray.mean(),
+        gray.std()
+    ])
+
+    return np.asarray(features, dtype=np.float32)
+```
+
+### 5.2 Support Vector Machine Classification
+
+The extracted features were standardised using `StandardScaler` and classified using a Support Vector Machine with an RBF kernel.
+
+Balanced class weights were used to account for differences in class representation.
+
+### Important Code: SVM Model
+
+```python
+svm_model = Pipeline([
+    ("scaler", StandardScaler()),
+
+    ("classifier", SVC(
+        C=3.0,
+        kernel="rbf",
+        probability=True,
+        class_weight="balanced",
+        random_state=42
+    ))
+])
+
+# Train the model
+svm_model.fit(X_train_feat, y_train)
+
+# Generate validation predictions
+val_pred_svm = svm_model.predict(X_val_feat)
+
+print("Validation Accuracy:",
+      accuracy_score(y_val, val_pred_svm))
+```
+
+The SVM model was evaluated using accuracy and macro-F1 score.
+
+## 6. Deep Learning Approach: MobileNetV2 Transfer Learning
+
+The second approach uses MobileNetV2, a convolutional neural network pretrained on ImageNet.
+
+Transfer learning allows the model to utilise previously learned visual representations rather than learning all image features from scratch.
+
+### 6.1 Image Preprocessing
+
+- Images are resized to 160 × 160 pixels.
+- RGB channels are retained.
+- MobileNetV2-specific preprocessing is applied.
+- Images and labels are converted into TensorFlow datasets.
+- Training data is shuffled and batched.
+
+### 6.2 Model Architecture
+
+The architecture consists of:
+
+1. Input layer: 160 × 160 × 3.
+2. Pretrained MobileNetV2 convolutional base.
+3. Global Average Pooling layer.
+4. Dropout layer.
+5. Dense classification layer with six neurons.
+6. Softmax activation for multiclass prediction.
+
+### Important Code: MobileNetV2 Model
+
+```python
+IMG_SHAPE = (160, 160)
+
+base_model = tf.keras.applications.MobileNetV2(
+    input_shape=(160, 160, 3),
+    include_top=False,
+    weights="imagenet"
+)
+
+# Freeze pretrained layers
+base_model.trainable = False
+
+inputs = keras.Input(shape=(160, 160, 3))
+
+x = base_model(inputs, training=False)
+x = layers.GlobalAveragePooling2D()(x)
+x = layers.Dropout(0.25)(x)
+
+outputs = layers.Dense(
+    len(class_names),
+    activation="softmax"
+)(x)
+
+cnn_model = keras.Model(inputs, outputs)
+
+cnn_model.compile(
+    optimizer=keras.optimizers.Adam(
+        learning_rate=0.001
+    ),
+    loss="sparse_categorical_crossentropy",
+    metrics=["accuracy"]
+)
+```
+
+The pretrained MobileNetV2 backbone was kept frozen, while the newly added classification head was trained for the six categories.
+
+### 6.3 Model Training and Early Stopping
+
+The model was trained for a maximum of 10 epochs. Early stopping monitored validation loss and restored the best-performing weights.
+
+### Important Code: Training
+
+```python
+early_stop = keras.callbacks.EarlyStopping(
+    monitor="val_loss",
+    patience=3,
+    restore_best_weights=True
+)
+
+history = cnn_model.fit(
+    train_ds,
+    validation_data=val_ds,
+    epochs=10,
+    callbacks=[early_stop],
+    verbose=1
+)
+```
+
+## 7. Model Evaluation
+
+Both models were evaluated using the same held-out test dataset containing 50 images.
+
+The following evaluation metrics were considered:
+
+- **Accuracy:** Proportion of correctly classified images.
+- **Precision:** Proportion of predicted class instances that are correct.
+- **Recall:** Proportion of actual class instances correctly identified.
+- **F1-score:** Harmonic mean of precision and recall.
+- **Macro-F1:** Average F1-score across all categories, giving equal importance to each class.
+
+### Important Code: Model Comparison
+
+```python
+# SVM predictions
+pred_svm = svm_model.predict(X_test_feat)
+
+# MobileNetV2 predictions
+prob_cnn = cnn_model.predict(test_ds, verbose=0)
+
+cnn_ids = np.argmax(prob_cnn, axis=1)
+pred_cnn = np.array(class_names)[cnn_ids]
+
+# Compare evaluation metrics
+results = pd.DataFrame([
+    {
+        "Model": "HOG + RGB + SVM",
+        "Accuracy": accuracy_score(y_test, pred_svm),
+        "Macro-F1": f1_score(
+            y_test, pred_svm,
+            average="macro",
+            zero_division=0
+        )
+    },
+    {
+        "Model": "MobileNetV2",
+        "Accuracy": accuracy_score(y_test, pred_cnn),
+        "Macro-F1": f1_score(
+            y_test, pred_cnn,
+            average="macro",
+            zero_division=0
+        )
+    }
+])
+
+print(results.round(4))
+```
+
+### Overall Performance Comparison
+
+| Evaluation Metric | HOG + RGB + SVM | MobileNetV2 |
+|---|---:|---:|
+| Accuracy | 90.00% | **96.00%** |
+| Macro-F1 Score | 89.82% | **96.14%** |
+| Macro Recall | 89.70% | **96.06%** |
+
+### Test Accuracy
+
+- HOG + RGB + SVM: 90% — 45 out of 50 images correctly classified.
+- MobileNetV2: 96% — 48 out of 50 images correctly classified.
+
+### Macro-F1 Comparison
+
+| Model | Macro-F1 |
+|---|---:|
+| HOG + RGB + SVM | 89.82% |
+| MobileNetV2 | **96.14%** |
+
+MobileNetV2 outperformed the traditional SVM model across all three aggregate evaluation metrics.
+
+## 8. Class-wise Performance Analysis
+
+Classification reports were generated to evaluate the performance of both models across individual categories.
+
+### HOG + RGB + SVM
+
+| Class | Precision | Recall | F1-score |
+|---|---:|---:|---:|
+| Codiaeum variegatum selected | 1.00 | 1.00 | 1.00 |
+| Herbarium zip | 0.86 | 0.86 | 0.86 |
+| Lembu | 0.82 | 1.00 | 0.90 |
+| Mango selected | 0.90 | 0.90 | 0.90 |
+| Coccinia grandis selected | 0.88 | 0.88 | 0.88 |
+| Unknown | 1.00 | 0.75 | 0.86 |
+
+### MobileNetV2
+
+| Class | Precision | Recall | F1-score |
+|---|---:|---:|---:|
+| Codiaeum variegatum selected | 1.00 | 1.00 | 1.00 |
+| Herbarium zip | 1.00 | 1.00 | 1.00 |
+| Lembu | 1.00 | 0.89 | 0.94 |
+| Mango selected | 0.91 | 1.00 | 0.95 |
+| Coccinia grandis selected | 1.00 | 1.00 | 1.00 |
+| Unknown | 0.88 | 0.88 | 0.88 |
+
+MobileNetV2 achieved an F1-score of 1.00 for three categories, demonstrating strong classification performance on this test split.
+
+### Confusion Matrix Analysis
+
+Confusion matrices were generated to visualise the number of correct and incorrect predictions for each category.
+
+The diagonal elements represent correctly classified images, while off-diagonal elements indicate misclassifications.
+
+```python
+fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+
+for ax, pred, title in [
+    (axes[0], pred_svm, "SVM Confusion Matrix"),
+    (axes[1], pred_cnn, "MobileNetV2 Confusion Matrix")
+]:
+
+    cm = confusion_matrix(
+        y_test,
+        pred,
+        labels=class_names
+    )
+
+    disp = ConfusionMatrixDisplay(
+        confusion_matrix=cm,
+        display_labels=class_names
+    )
+
+    disp.plot(
+        ax=ax,
+        xticks_rotation=90,
+        colorbar=False,
+        values_format="d"
+    )
+
+    ax.set_title(title)
+
+plt.tight_layout()
+plt.show()
+```
+
+## 9. Training Performance
+
+MobileNetV2 training and validation accuracy were monitored across 10 epochs.
+
+| Epoch | Training Accuracy | Validation Accuracy |
+|---:|---:|---:|
+| 1 | 41.23% | 77.55% |
+| 2 | 82.46% | 89.80% |
+| 3 | 91.67% | 91.84% |
+| 4 | 97.37% | 91.84% |
+| 5 | 95.61% | 95.92% |
+| 6 | 98.25% | 95.92% |
+| 7 | 98.25% | 95.92% |
+| 8 | 99.12% | 100.00% |
+| 9 | 97.81% | 97.96% |
+| 10 | 99.56% | 100.00% |
+
+The final recorded validation accuracy was 100%, with a validation loss of 0.0818.
+
+The relatively small validation set should be considered when interpreting this result.
+
+## 10. Unknown Leaf Detection
+
+An additional component of the project explores confidence-based prediction for unfamiliar or uncertain images.
+
+The maximum prediction probability is calculated for each image. A confidence threshold is estimated using the 10th percentile of maximum validation probabilities.
+
+| Model | Confidence Threshold |
+|---|---:|
+| SVM | 0.390 |
+| MobileNetV2 | 0.808 |
+
+### Important Code: Confidence-Based Prediction
+
+```python
+# Calculate validation probabilities
+val_prob_svm = svm_model.predict_proba(X_val_feat)
+val_prob_cnn = cnn_model.predict(val_ds, verbose=0)
+
+# Estimate confidence thresholds
+svm_threshold = np.quantile(
+    val_prob_svm.max(axis=1), 0.10
+)
+
+cnn_threshold = np.quantile(
+    val_prob_cnn.max(axis=1), 0.10
+)
+
+def predict_with_unknown_cnn(image_path):
+
+    img = Image.open(image_path).convert("RGB")
+    img = img.resize(IMG_SHAPE)
+
+    arr = np.asarray(img, dtype=np.float32)
+
+    arr = tf.keras.applications.mobilenet_v2.preprocess_input(arr)
+
+    probs = cnn_model.predict(
+        arr[None, ...], verbose=0
+    )[0]
+
+    idx = np.argmax(probs)
+    confidence = float(probs[idx])
+
+    if confidence >= cnn_threshold:
+        label = class_names[idx]
+    else:
+        label = "unknown (low confidence)"
+
+    return label, confidence
+```
+
+This approach provides a basic confidence-based rejection mechanism. However, it is a heuristic rather than a dedicated open-set recognition model. A high-confidence prediction can still be incorrect for an unfamiliar species or a non-leaf image.
+
+## 11. Model Saving and Export
+
+The trained models and evaluation outputs are saved for future use.
+
+### Important Code: Saving Models
+
+```python
+OUTPUT_DIR = Path("project_outputs")
+OUTPUT_DIR.mkdir(exist_ok=True)
+
+# Save SVM model
+joblib.dump(
+    svm_model,
+    OUTPUT_DIR / "hog_colour_svm.joblib"
+)
+
+# Save MobileNetV2 model
+cnn_model.save(
+    OUTPUT_DIR / "mobilenetv2_leaf_classifier.keras"
+)
+
+# Save evaluation results
+results.to_csv(
+    OUTPUT_DIR / "model_comparison.csv",
+    index=False
+)
+```
+
+### Generated Files
+
+| File | Description |
+|---|---|
+| hog_colour_svm.joblib | Trained SVM pipeline |
+| mobilenetv2_leaf_classifier.keras | Trained MobileNetV2 model |
+| model_notes.json | Model configuration and confidence thresholds |
+| model_comparison.csv | Performance comparison |
+| leaf_metadata.csv | Dataset image paths and labels |
+
+## 12. Technologies and Libraries Used
+
+| Technology | Application |
+|---|---|
+| Python | Core programming language |
+| NumPy | Numerical operations |
+| Pandas | Dataset handling |
+| Matplotlib | Data visualisation |
+| Seaborn | Statistical visualisation |
+| Pillow | Image loading and processing |
+| Scikit-image | HOG feature extraction |
+| Scikit-learn | SVM and model evaluation |
+| TensorFlow / Keras | Deep learning and transfer learning |
+| Joblib | Model saving |
+| Jupyter Notebook | Development environment |
+
+## 13. How to Run the Project
+
+### Clone the repository
 
 ```bash
 git clone https://github.com/nooby30/Leaf_Classification_Final.git
 cd Leaf_Classification_Final
 ```
 
-### 2. Install the dependencies
+### Install the required libraries
 
 ```bash
 pip install numpy pandas matplotlib seaborn pillow scikit-image scikit-learn joblib tensorflow
 ```
 
-### 3. Prepare the dataset
+### Prepare the dataset
 
-Place the leaf dataset ZIP file in the working directory, or upload it to the location used by your notebook.
+Place the dataset ZIP files in the working directory expected by the notebook.
 
-The notebook contains both local-path and Google Colab-style paths. Update the ZIP and extraction paths to match your environment before running the relevant cells.
+The current notebook uses `/content` for its ZIP extraction workflow. When running locally in Jupyter Notebook, update the dataset paths to match your computer.
 
-### 4. Run the notebook
+### Run the notebook
 
-Open `Data_Science_project.ipynb` in Jupyter Notebook or Google Colab and execute the cells in order.
+Open `Data_Science_project.ipynb` using Jupyter Notebook or Google Colab and execute the cells sequentially.
 
-The first MobileNetV2 run may require an internet connection to obtain pretrained ImageNet weights.
+An internet connection is required during the first MobileNetV2 run to download pretrained ImageNet weights.
 
-### 5. Evaluate and save the models
+## 14. Limitations and Future Scope
 
-The notebook generates evaluation metrics and visualisations and saves model artefacts in a `project_outputs/` directory.
+Although the project demonstrates promising classification performance, several improvements can be explored:
 
-## 💾 Saved Outputs
+- Increasing the dataset size and diversity.
+- Testing images collected under different lighting and background conditions.
+- Checking for duplicate and near-duplicate images across dataset splits.
+- Fine-tuning selected MobileNetV2 layers.
+- Exploring alternative CNN architectures such as EfficientNet and ResNet.
+- Developing more reliable open-set recognition techniques.
+- Building an interface for uploading leaf images and obtaining predictions.
+- Evaluating the models using larger, independently collected datasets.
 
-The notebook is configured to save the following files inside `project_outputs/`:
+## 15. Conclusion
 
-| File | Description |
-|---|---|
-| `hog_colour_svm.joblib` | Trained SVM pipeline |
-| `mobilenetv2_leaf_classifier.keras` | Trained MobileNetV2 classifier |
-| `model_notes.json` | Class labels, confidence thresholds, image sizes, and notes |
-| `model_comparison.csv` | Comparison of evaluation metrics |
-| `leaf_metadata.csv` | Image paths and class metadata |
+This project presents a comparative study of traditional machine learning and deep learning approaches for leaf image classification.
 
-It also saves training, validation, and test metadata CSV files in the notebook's working directory.
+The HOG and RGB colour histogram-based SVM model achieved 90% test accuracy, demonstrating that handcrafted visual features can provide a useful baseline for image classification.
 
-These files are generated when the relevant notebook cells run successfully; they are not necessarily included in the repository.
+MobileNetV2 transfer learning achieved 96% test accuracy and a macro-F1 score of 96.14%, outperforming the traditional machine learning approach on the evaluated test dataset.
 
-## ⚠️ Limitations
+The results demonstrate the effectiveness of pretrained convolutional neural networks in extracting useful visual representations for leaf classification.
 
-- Performance depends on dataset quality, class balance, and image diversity.
-- Images from the same source or near-duplicates across different splits can inflate evaluation scores.
-- Performance on the test set does not guarantee similar results on real-world photographs.
-- Confidence thresholds do not guarantee reliable unknown-species detection.
-- The automatic selection of the five largest folders should be checked before training.
+The project also explores confidence-based prediction for uncertain images, providing a foundation for further investigation into unfamiliar species recognition.
 
-## 🔮 Future Improvements
+Overall, this work highlights the potential of combining computer vision, machine learning, and deep learning techniques for automated plant image classification.
 
-- Fine-tune selected MobileNetV2 layers.
-- Add more leaf species and diverse image conditions.
-- Check for duplicate or near-duplicate images across dataset splits.
-- Evaluate on genuinely independent images from different sources.
-- Improve unknown-class detection using dedicated unknown examples and calibrated thresholds.
-- Build a simple interface for uploading a leaf image and viewing predictions.
+---
 
+## Author
+
+**Soumyadip Barik,**
+**Bakshish Kaur,**
+**Khushi Malhotra**
+
+GitHub: [@nooby30](https://github.com/nooby30)
+
+Project Repository: [Leaf Classification Using Machine Learning and Deep Learning](https://github.com/nooby30/Leaf_Classification_Final)
